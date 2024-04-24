@@ -2,7 +2,7 @@
 
 Name:           mruby
 Version:        3.3.0
-Release:        1%{?dist}
+Release:        1.1%{?dist}
 Summary:        Lightweight implementation of the Ruby language
 License:        MIT
 URL:            https://github.com/mruby/mruby
@@ -11,7 +11,8 @@ Source0:        https://github.com/mruby/mruby/archive/refs/tags/%{version}.tar.
 
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
-BuildRequires:  rubygem-rake
+# >>> Direct file require might be better
+BuildRequires:  %{_bindir}/rake
 BuildRequires:  doxygen
 BuildRequires:  graphviz
 
@@ -40,6 +41,7 @@ Requires:  js-jquery
 %setup -q
 
 %build
+# >>> I have no insight into the flags; I hope someone will verify
 CFLAGS+='-fpic'
 LDFLAGS+='-lm'
 
@@ -49,10 +51,11 @@ pushd build/host
 rm bin/*
 gcc -shared -o lib/libmruby.so.%{soversion} ${LDFLAGS} -Wl,-soname,libmruby.so.%{soversion} -Wl,--whole-archive lib/libmruby.a -Wl,--no-whole-archive
 gcc ${CFLAGS} -o "bin/mrbc" mrbgems/mruby-bin-mrbc/tools/mrbc/*.o ${LDFLAGS} "lib/libmruby_core.a"
-gcc ${CFLAGS} -o "bin/mirb" mrbgems/mruby-bin-mirb/tools/mirb/*.o ${LDFLAGS} -L"lib" -Wl,-Bdynamic -lmruby
-gcc ${CFLAGS} -o "bin/mrdb" mrbgems/mruby-bin-debugger/tools/mrdb/*.o ${LDFLAGS} -L"lib" -Wl,-Bdynamic -lmruby
-gcc ${CFLAGS} -o "bin/mruby" mrbgems/mruby-bin-mruby/tools/mruby/*.o ${LDFLAGS} -L"lib" -Wl,-Bdynamic -lmruby
-gcc ${CFLAGS} -o "bin/mruby-strip" mrbgems/mruby-bin-strip/tools/mruby-strip/*.o ${LDFLAGS} -L"lib" -Wl,-Bdynamic -lmruby
+
+# >>> Maybe let's simplify this?
+for _binary in m{irb,rdb,ruby,ruby-strip}; do
+gcc ${CFLAGS} -o "bin/${_binary}"  mrbgems/mruby-bin-*/tools/${_binary}/*.o ${LDFLAGS} -L"lib" -Wl,-Bdynamic -lmruby
+done
 popd
 
 rake -v doc:capi
